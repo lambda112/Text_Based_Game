@@ -1,3 +1,6 @@
+import random
+
+
 class Characters:   
     def __init__(self, name:str, health:int, strength:int, magic:int, attacks:dict) -> None:
         self.name = name
@@ -13,15 +16,29 @@ class Characters:
             if self.strength > self.magic:
                 self.attacks[i] += self.strength
             else:
-                self.attacks[i] += self.magic
+                self.attacks[i] += (self.magic + random.int(1, self.magic))
 
 
-    def is_dead(self):
-        if self.health > 0:
-            print(f"{self.name} has died.")
-            return True
+    def is_alive(self):
+        if self.health < 0:
+            return False
         else:
-            return False 
+            return True 
+        
+
+    def attack(self, calc_damage: bool = False):
+        if calc_damage:
+            self.calculate_damage()
+
+        if self.is_alive():
+            attack_list = list(self.attacks.keys())
+            attack_name = random.choice(attack_list)
+            attack_damage = self.attacks[attack_name]
+            print(f"{self.name} uses {attack_name} it does {attack_damage} damage!")
+            return attack_damage
+        
+        else:
+            print(f"{self.name} has died.")
 
 
     def show_stats(self):
@@ -63,8 +80,9 @@ def choose_char(show_stats: bool = False, name: str = "Warrior",):
     return user_char
 
 
-char = choose_char()
-char.calculate_damage()
-spider_enemy.calculate_damage()
+# char = choose_char()
+# print(choose_char(True, char.name))
 
-print(choose_char(True, char.name))
+warrior_char.attack(True)
+warrior_char.attack()
+warrior_char.attack()
