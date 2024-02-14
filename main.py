@@ -1,5 +1,5 @@
 import random
-
+from time import sleep
 
 class Characters:   
     def __init__(self, name:str, health:int, strength:int, magic:int, attacks:dict) -> None:
@@ -16,11 +16,12 @@ class Characters:
             if self.strength > self.magic:
                 self.attacks[i] += self.strength
             else:
-                self.attacks[i] += (self.magic + random.int(1, self.magic))
+                self.attacks[i] += (self.magic + random.randint(1, self.magic))
 
 
     def is_alive(self):
         if self.health < 0:
+            print(f"{self.name} has died.")
             return False
         else:
             return True 
@@ -35,10 +36,16 @@ class Characters:
             attack_name = random.choice(attack_list)
             attack_damage = self.attacks[attack_name]
             print(f"{self.name} uses {attack_name} it does {attack_damage} damage!")
+            sleep(2)
             return attack_damage
         
         else:
-            print(f"{self.name} has died.")
+            return 0
+    
+    def damage(self, damage):
+        self.health -= damage
+        print(f"{self.name} now has {self.health} health!\n")
+        sleep(2)
 
 
     def show_stats(self):
@@ -77,12 +84,22 @@ def choose_char(show_stats: bool = False, name: str = "Warrior",):
         if char == user_char:
             user_char = character[char]
 
+    user_char.name = user_char.name + input("What would you like to name your character?: ")
     return user_char
 
 
 # char = choose_char()
 # print(choose_char(True, char.name))
 
-warrior_char.attack(True)
-warrior_char.attack()
-warrior_char.attack()
+def battle(character, enemy):
+    character.calculate_damage()
+    enemy.calculate_damage()
+    while character.is_alive() and enemy.is_alive():
+        # Player Turn
+        char_damage = character.attack()
+        enemy.damage(char_damage)
+        # Enemy Turn
+        enemy_damage = enemy.attack()
+        character.damage(enemy_damage)
+
+battle(warrior_char, spider_enemy)
