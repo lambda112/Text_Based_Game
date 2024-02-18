@@ -10,8 +10,8 @@ class Characters:
         self.strength = strength
         self.magic = magic
         self.attacks = attacks
-        power = self.strength + self.magic
-        self.level = ((self.health * power) // 1000) * len(self.attacks)
+        self.level = 0
+        self.experience = (self.strength + self.magic + self.health)
 
 
     def show_stats(self) -> str:
@@ -61,19 +61,85 @@ class Characters:
         os._exit(200)
 
     
-
 class Enemy(Characters):
     def __init__(self, name: str, health: int, strength: int, magic: int, attacks: dict) -> None:
         super().__init__(name, health, strength, magic, attacks)
+
+    
+class Room():
+
+    def __init__(self, items:dict) -> None:
+        self.exp = 0
+        self.money = 0
+        self.items = items
+        self.enemy_chance = 20
+        self.room_num = 1
+
+
+    def choose_path(self):
+        path = input(f"Enter 'w' to go west towards an enemy, or 'e' to go east towards an item shop. However be warned there is a 1 in {self.enemy_chance} chance of encountering a boss type enemy. ")
+        while path not in ["w", "e"]:
+            path = input("Enter 'w' or 'e': ")
+
+        return path
+    
+
+    def calculate_xp(enemy):
+        xp = (enemy.strength + enemy.magic + enemy.health)
+        return xp
+    
+
+    def calculate_money(enemy):
+        money = enemy.strength + enemy.magic
+        return money
+    
+
+    def calculate_enemy(self):
+        num = 0
+        if self.room_num >= 5:
+            num = 5
+        elif self.room_num >= 10:
+            num = 10
+
+        print(num)
+        return num
+    
+
+    def enter_room(self, path, char):
+        print(enemy)
+        while True:
+            print(f"Room: {self.room_num}")
+            if path == "w":
+                print(self.calculate_enemy())
+                enemy = enemy[self.calculate_enemy()]
+                battle(char, enemy)
+                char.experience -= self.calculate_xp(enemy)
+                char.money += self.calculate_money(enemy)
+            else:
+                if random.randint(0,self.enemy_chance) == self.enemy_chance or self.enemy_chance == 0:
+                    enemy = enemy["e"]
+                    battle(char, enemy)
+                else:
+                    print("Shop is not open yet")
+                    self.enemy_chance -= 2
+
+            if char.experience < 0:
+                char.level += 1
+                char.strength += 3
+                char.magic += 2
+                char.health += 20
+                char.experience = (char.strength + char.magic + char.health)
+            else:
+                print(f"{char.name} is level {char.level} and requires {char.experience} xp.")
+
+            self.room_num += 1
+            self.choose_path()
 
 
 # Player Stats
 warrior_char = Characters("Warrior", 100, 10, 0, {"Slash": 5, "Stab":3})
 mage_char = Characters("Mage", 100, 0, 10, {"Fireball":5, "Zap":3})
 archer_char = Characters("Archer", 100, 5, 5, {"Multi-Shot": 5, "Single-Shot":3})
-
-# Enemy Stats
-spider_enemy = Enemy("Spider", 10, 1, 5, {"Web-Shot": 5, "Poison-Bite": 3})
 
 
 def display_stats():
@@ -126,7 +192,13 @@ def battle(character, enemy):
 
 
 char = choose_char()
+room = Room(0, 0, 0)
 print(choose_char(True, char.name))
-sleep(2)
-print("")
-battle(char, spider_enemy)
+room.enter_room(room.choose_path(), char)
+
+
+room_five_enemies = {
+    "Spider":Enemy("Spider", 25, 4, 5, {"Web-Shot": 5, "Poison-Bite": 3}),
+    "Goblin":Enemy("Goblin", 20, 6, 1, {"Gob Smash": 3, "Gob Punch": 2}),
+    "Scarecrow":Enemy("Scarecrow", 30, 2, 4, {"Scare":1, "Crow": 5})     
+    }
