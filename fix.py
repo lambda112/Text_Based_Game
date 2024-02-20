@@ -37,10 +37,6 @@ class Stats:
         self.attacks = {key:value + self.attack_bonus() for key,value in self.attacks.items()}
         return self.attacks
 
-    def attack_effect(self):
-        pass
-
-
     
 class Characters(Stats):
     def __init__(self, type, health: int, strength: int, magic: int, attacks: dict) -> None:
@@ -65,9 +61,9 @@ class Characters(Stats):
         self.experience_required -= enemy_xp
         self.money += enemy_xp
         if self.experience_required <= 0:
+            self.increase_stats()
             print(f"\nYou have leveled up! You are now level {self.level}")
             print("Stats Increased.")
-            self.increase_stats()
             print(f"{self.show_stats()}")
             self.experience_required = (self.strength + self.magic + self.health)
         else:
@@ -81,13 +77,13 @@ class Enemies(Stats):
 
 class Battle():
     def __init__(self) -> None:
-        enemy_dict = {
+        self.enemy_dict = {
         "Spider":Enemies("Spider", 25, 4, 5, {"Web-Shot": 5, "Poison-Bite": 3}),
         "Goblin":Enemies("Goblin", 20, 6, 1, {"Gob Smash": 3, "Gob Punch": 2}),
         "Scarecrow":Enemies("Scarecrow", 30, 2, 4, {"Scare":1, "Crow": 5})     
         }
 
-        self.enemy = random.choice(list(enemy_dict.values()))
+        self.enemy = random.choice(list(self.enemy_dict.values()))
         self.enemy_xp = (self.enemy.strength + self.enemy.magic) * len(self.enemy.attacks)
         self.character = self.character_selection(self.list_of_characters())
 
@@ -95,7 +91,7 @@ class Battle():
         characters = {
         "Warrior" : Characters("Warrior", 100, 10, 0, {"Slash": 5, "Stab":3}),
         "Mage" : Characters("Mage", 100, 0, 10, {"Fireball":5, "Zap":3}),
-        "Archer": Characters("Archer", 10, 5, 5, {"Multi-Shot": 5, "Single-Shot":3}),
+        "Archer": Characters("Archer", 100, 5, 5, {"Multi-Shot": 10, "Single-Shot":6}),
         }
 
         return characters
@@ -177,7 +173,7 @@ class Battle():
             sleep(1)
 
         self.enemy.reset_stats()
-        self.character.reset_stats()
+        self.character.attacks = self.character.old_attacks
         self.character.reward(self.enemy_xp)
 
     def battle_init(self):
@@ -191,21 +187,134 @@ class Game(Battle):
         super().__init__()
         self.chance = 10
         self.room_num = 1
-
-    def choose_path(self):
-        path = input(f"Enter 'w' to go west towards an enemy, or 'e' to go east towards an item shop. However be warned there is a 1 in {self.chance} chance of encountering a boss type enemy. ").lower()
-        while path not in ["w", "e"]:
-            path = input("Enter 'w' or 'e': ").lower()
-
-        return path
+        self.inventory = {}
+        self.item_num = 1
+        self.max_health = self.character.health
     
+    def item_list(self):
+        items = {
+            "Healing":
+                {
+                "Simple Healing": {"Cost": 10, "Heals": 10},
+                "Improved Healing": {"Cost": 30, "Heals": 30},
+                "Best Healing": {"Cost": 50, "Heals":50},
+                },
+            "Strength Enhancement":
+                {
+                "Energy Drink": {"Cost": 0, "Increase": 1},
+                "Training Manual": {"Cost": 70, "Increase": 2},
+                "Steroids": {"Cost": 110, "Increase": 3},
+                },
+            "Health Enhancement":
+                {
+                "Vitamin C": {"Cost": 40, "Increase": 1},
+                "Heart Transplant": {"Cost": 70, "Increase": 2},
+                "Toronto Chicken Burger": {"Cost": 110, "Increase": 3},
+                },
+            "Magic Enhancement":
+                {
+                "Play Minecraft": {"Cost": 40, "Increase": 1},
+                "Watch YouTube Turtorial": {"Cost": 70, "Increase": 2},
+                "Complete Coursework Module": {"Cost": 110, "Increase": 3},
+                },
+            "Attack":
+                {
+                "Bulldoze": {"Cost": 100, "Damage": 10},
+                "Water Wave": {"Cost": 100, "Damage": 10},
+                "Snipe": {"Cost": 100, "Damage": 10},
+                }
+            }
+        return items
+
+    def item_choice(self, item_list):
+        item_choice = {}
+        for key in item_list:
+            key_split = [i for i in key if i.isupper()]
+            item_choice["".join(key_split)] = key
+
+        return item_choice
+
+    def item_validation(self, item_choice:dict, item_list:dict, new_message:bool = False):
+        if new_message:
+            item = input(f"\nWhat type of item would you like? {list(item_list.items())}\nChoices: {list(item_choice.keys())}: ").upper()
+        else:
+            item = input(f"\nWhat type of item would you like? {list(item_list)}\nChoices: {list(item_choice.keys())}: ").upper()
+
+        while item not in item_choice.keys():
+            if item == "EXIT":
+                return None
+            else:
+                item = input(f"Type 'EXIT' to leave shop or '{list(item_choice.keys())}' to make a purchase. ").upper()
+                
+        return item
+
+    def get_item(self):
+        item_list = self.item_list()
+        item_choice = self.item_choice(item_list)
+        item = self.item_validation(item_choice, item_list, False)
+        if item == None:
+            return None
+        
+        item_type = item_choice[item]
+
+        item_list = item_list[item_type]
+        item_choice = self.item_choice(item_list)
+        item = self.item_validation(item_choice, item_list, True)
+        if item == None:
+            return None
+        return item_choice[item], item_list[item_choice[item]], item_type
+
+    def apply_item(self, item):
+        if item == None:
+            return None 
+
+        item_type = item[2]
+        if item_type == "Healing":
+            self.character.health += item[1]["Heals"]
+            if self.character.health > self.max_health:
+                self.character.health = self.max_health
+    
+        elif item_type == "Strength Enhancement":
+            self.character.strength += item[1]["Increase"]
+        
+        elif item_type == "Health Enhancement":
+            self.character.health += item[1]["Increase"]
+
+        elif item_type == "Magic Enhancement":
+            self.character.magic += item[1]["Increase"]
+        
+        else:
+            self.character.attacks[item[0]] = item[1]["Damage"]
+
+    def item_shop(self, item):
+        if item == None:
+            return None
+        
+        item_stats = item[1]
+
+        if item == None:
+            return None
+        elif self.character.money >= item_stats["Cost"]:
+            self.character.money -= item_stats["Cost"]
+            self.apply_item(item)
+            print(self.character.show_stats())  
+        else:
+            print(f"\nNot enough money to purchase {item}!\nYou have {self.character.money} gold and need {item_stats['Cost']} gold.\nCome back when you have more money.")
+        
     def shop_code(self):
         if random.randint(0,self.chance) == self.chance or self.chance == 0:
             self.battle_mechanic()
             self.chance = 10
         else:
-            print("Shop is not open yet.")
+            self.item_shop(self.get_item())
             self.chance -= 2
+    
+    def choose_path(self):
+        path = input(f"Enter 'w' to go west towards an enemy, or 'e' to go east towards an item shop with your {self.character.money} gold.\nHowever be warned there is a 1 in {self.chance} chance of encountering a boss type enemy. ").lower()
+        while path not in ["w", "e"]:
+            path = input("Enter 'w' or 'e': ").lower()
+
+        return path
 
     def path_code(self):
         if self.choose_path() == "w":
@@ -217,6 +326,7 @@ class Game(Battle):
         while True:
             print(f"\nRoom Number: {self.room_num}")
             self.path_code()
+            self.enemy = random.choice(list(self.enemy_dict.values()))
             self.room_num += 1
 
 game = Game()
